@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>環境查詢系統（EQS）與空間推理 | 遊戲 AI Wiki</title>
+<style>
+  body { background: #111111; color: #e2e8f0; font-family: system-ui, sans-serif; line-height: 1.7; max-width: 820px; margin: 0 auto; padding: 2rem 1.5rem; }
+  h1 { color: #38bdf8; } h2 { color: #f43f5e; margin-top: 1.8rem; }
+  .box { background: #18181b; border-left: 4px solid #38bdf8; padding: 1rem 1.2rem; margin: 1rem 0; border-radius: 0 8px 8px 0; }
+  .analogy { border-left-color: #eab308; }
+  a { color: #38bdf8; text-decoration: none; } a:hover { text-decoration: underline; }
+  .links { background: #18181b; padding: 1rem; border-radius: 8px; margin-top: 2rem; }
+</style>
+</head>
+<body>
+  <p><a href="./index.html">← 回到 Wiki 首頁</a></p>
+  <h1>4. 環境查詢系統（EQS）與空間推理</h1>
+
+  <div class="box">
+    <strong>一句話白話定義（TL;DR）：</strong><br>
+    EQS 是一套空間雷達系統，它會在戰場周圍撒出幾十個候選位置並逐一打分數，幫 AI 挑出「既安全又離自己最近」的最佳躲藏點。
+  </div>
+
+  <div class="box analogy">
+    <strong>💡 生活化比喻：玩躲貓貓時的快速掃描</strong><br>
+    當你要找地方躲起來時，大腦會瞬間掃描周圍的柱子、牆角與箱子（<strong>生成器撒點</strong>），接著在心裡打分：「柱子後面鬼看不到（+50分）、離我只有兩步路（+30分）、箱子太矮會露頭（淘汰）」，最後跑向最高分的位置（<strong>測試器評分</strong>）。
+  </div>
+
+  <h2>核心運作機制（源自 raw/04_eqs_spatial.md）</h2>
+  <ul>
+    <li><strong>生成器（Generator）</strong>：以 AI 或玩家為中心，在地形上撒出候選點陣列，常見形狀包含<strong>網格（Grid）</strong>與<strong>圓環（Donut / Ring）</strong>。</li>
+    <li><strong>測試器（Test）</strong>：針對每個候選點進行過濾與 0.0～1.0 評分：
+      <ul>
+        <li><code>Trace Test</code>（視線檢測）：剔除會被玩家直接看到的點，保留有掩體遮蔽的位置。</li>
+        <li><code>Distance Test</code>（距離評分）：距離越近分數越高，避免 AI 跑穿整個戰場。</li>
+        <li><code>Pathfinding Test</code>（路徑可達性）：過濾掉懸崖對面或無法走到的死角。</li>
+      </ul>
+    </li>
+    <li><strong>與黑板連動</strong>：最高分的 3D 座標會寫入 <a href="./blackboard-decorator.html">黑板（Blackboard）</a>，再由行為樹指揮移動。</li>
+  </ul>
+
+  <div class="links">
+    <strong>🔗 關聯概念導覽：</strong><br>
+    • 數據交接：<a href="./blackboard-decorator.html">← 黑板系統（Blackboard）如何接收 EQS 座標？</a><br>
+    • 完整拼圖：<a href="./hybrid-ai.html">效用系統（Utility AI）與現代 3A 混合架構 →</a>
+  </div>
+</body>
+</html>
