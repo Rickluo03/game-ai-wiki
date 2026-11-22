@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>行為樹（Behavior Tree）核心節點 | 遊戲 AI Wiki</title>
+<style>
+  body { background: #111111; color: #e2e8f0; font-family: system-ui, sans-serif; line-height: 1.7; max-width: 820px; margin: 0 auto; padding: 2rem 1.5rem; }
+  h1 { color: #38bdf8; } h2 { color: #f43f5e; margin-top: 1.8rem; }
+  .box { background: #18181b; border-left: 4px solid #38bdf8; padding: 1rem 1.2rem; margin: 1rem 0; border-radius: 0 8px 8px 0; }
+  .analogy { border-left-color: #eab308; }
+  a { color: #38bdf8; text-decoration: none; } a:hover { text-decoration: underline; }
+  .links { background: #18181b; padding: 1rem; border-radius: 8px; margin-top: 2rem; }
+</style>
+</head>
+<body>
+  <p><a href="./index.html">← 回到 Wiki 首頁</a></p>
+  <h1>2. 行為樹（Behavior Tree）核心節點</h1>
+
+  <div class="box">
+    <strong>一句話白話定義（TL;DR）：</strong><br>
+    行為樹是一張從上往下、從左往右閱讀的「決策樹狀圖」，透過「二選一」與「照順序做」兩種邏輯積木，讓 AI 有條理地決定下一步動作。
+  </div>
+
+  <div class="box analogy">
+    <strong>💡 生活化比喻：公司主管派發任務</strong><br>
+    • <strong>選擇器（Selector）</strong>就像主管說：「這三個方案你從左到右試，<strong>只要有一個成功</strong>就回來報告！」<br>
+    • <strong>序列器（Sequence）</strong>就像組裝說明書：「必須完成『拿螺絲 → 鎖緊 → 測試』<strong>全部成功</strong>才算完工，中間任何一步失敗就整組放棄。」
+  </div>
+
+  <h2>核心運作機制（源自 raw/02_bt_basics.md）</h2>
+  <ul>
+    <li><strong>三種回傳狀態</strong>：每個節點執行後只會回報 <code>Success</code>（成功）、<code>Failure</code>（失敗）或 <code>Running</code>（執行中，例如正在走路）。</li>
+    <li><strong>選擇器（Selector，符號 <code>?</code>）</strong>：類似程式中的 <code>OR</code> 邏輯，由左至右嘗試子節點，遇到第一個成功即停止並向上回報成功，適合處理「優先級決策」。</li>
+    <li><strong>序列器（Sequence，符號 <code>→</code>）</strong>：類似程式中的 <code>AND</code> 邏輯，必須所有子節點依序成功才算成功，適合處理「連續步驟動作」。</li>
+    <li><strong>葉節點（Leaf Nodes）</strong>：位於最底層，負責實際檢查條件（Condition）或執行角色動作（Task / Action）。</li>
+  </ul>
+
+  <div class="links">
+    <strong>🔗 關聯概念導覽：</strong><br>
+    • 前置背景：<a href="./fsm-limits.html">← 為什麼需要取代有限狀態機（FSM）？</a><br>
+    • 下一步進階：<a href="./blackboard-decorator.html">黑板系統與裝飾器：AI 如何記憶目標並控制條件？ →</a><br>
+    • 高階混合：<a href="./hybrid-ai.html">效用系統（Utility AI）與混合決策架構 →</a>
+  </div>
+</body>
+</html>
