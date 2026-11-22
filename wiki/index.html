@@ -1,1 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>遊戲 AI 決策系統 | LLM Wiki 知識庫</title>
+<style>
+  body { background: #111111; color: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; line-height: 1.7; max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem; }
+  h1 { color: #38bdf8; border-bottom: 2px solid #1e293b; padding-bottom: 0.5rem; }
+  h2 { color: #f43f5e; margin-top: 2rem; }
+  .badge { background: #1e293b; color: #38bdf8; padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.85rem; }
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+  .card { background: #18181b; border: 1px solid #27272a; border-radius: 8px; padding: 1.2rem; transition: border-color 0.2s; }
+  .card:hover { border-color: #38bdf8; }
+  .card a { color: #38bdf8; text-decoration: none; font-weight: bold; font-size: 1.1rem; display: block; margin-bottom: 0.5rem; }
+  .nav-bar { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid #27272a; display: flex; justify-content: space-between; }
+  .btn { background: #0284c7; color: #fff; padding: 0.6rem 1.2rem; border-radius: 6px; text-decoration: none; font-weight: bold; }
+</style>
+</head>
+<body>
+  <span class="badge">LLM Wiki 知識庫 • 嚴格基於 5 篇 Raw 素材建構</span>
+  <h1>遊戲 AI 決策系統：從零理解敵人的大腦</h1>
+  <p>本知識庫專為沒有遊戲程式開發經驗的初學者設計，透過「生活化比喻」與「模組化拆解」，帶你了解現代 3D 遊戲中的敵人是如何巡邏、記憶玩家位置、尋找掩體並做出戰術權衡的。</p>
 
+  <h2>📚 核心知識詞條導覽（建議閱讀順序）</h2>
+  <div class="card-grid">
+    <div class="card">
+      <a href="./fsm-limits.html">1. 有限狀態機（FSM）與局限</a>
+      <p>早期遊戲 AI 怎麼運作？為什麼狀態一多就會變成「義大利麵條連線地獄」？</p>
+    </div>
+    <div class="card">
+      <a href="./behavior-tree.html">2. 行為樹（Behavior Tree）</a>
+      <p>如何用「選擇器（OR）」與「序列器（AND）」打造清晰不打結的決策樹？</p>
+    </div>
+    <div class="card">
+      <a href="./blackboard-decorator.html">3. 黑板系統與裝飾器</a>
+      <p>AI 怎麼記住玩家躲在哪裡？守門員（Decorator）如何在攻擊前檢查條件？</p>
+    </div>
+    <div class="card">
+      <a href="./eqs-spatial.html">4. 環境查詢系統（EQS）</a>
+      <p>AI 如何像真人一樣在 3D 地圖上「撒點打分數」，動態找出最佳掩護點？</p>
+    </div>
+    <div class="card">
+      <a href="./hybrid-ai.html">5. 效用系統與混合架構</a>
+      <p>殘血又沒子彈時怎麼辦？看 3A 遊戲如何混合分數曲線與行為樹。</p>
+    </div>
+  </div>
+
+  <div class="nav-bar">
+    <span>知識來源：<code>raw/01 ~ 05.md</code></span>
+    <a class="btn" href="../presentation.html">前往互動教學 HTML 簡報 →</a>
+  </div>
+</body>
+</html>
