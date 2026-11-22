@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>從零看懂遊戲 AI：敵人是如何思考與找掩護的？</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #181b24;
+    --border: #2a2f3d;
+    --cyan: #38bdf8;
+    --rose: #f43f5e;
+    --amber: #fbbf24;
+    --emerald: #34d399;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  /* 頂部進度條 */
+  .progress-container { width: 100%; height: 5px; background: #1e293b; }
+  .progress-bar { height: 100%; background: linear-gradient(90deg, var(--cyan), var(--rose)); width: 12.5%; transition: width 0.3s ease; }
+
+  /* 投影片主舞台 */
+  .stage {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    position: relative;
+  }
+  .slide {
+    display: none;
+    width: 100%;
+    max-width: 1040px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2.8rem 3.2rem;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    animation: fadeIn 0.35s ease;
+  }
+  .slide.active { display: block; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* 排版元素 */
+  .tag {
+    display: inline-block;
+    background: rgba(56, 189, 248, 0.15);
+    color: var(--cyan);
+    padding: 0.3rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+  h1 { font-size: 2.5rem; line-height: 1.25; margin-bottom: 1rem; color: #fff; }
+  h2 { font-size: 1.85rem; margin-bottom: 1.2rem; color: var(--cyan); }
+  p.lead { font-size: 1.2rem; color: var(--muted); line-height: 1.6; margin-bottom: 1.5rem; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; margin-top: 1rem; }
+
+  .box {
+    background: #12151e;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.3rem;
+  }
+  .box h3 { font-size: 1.15rem; margin-bottom: 0.6rem; color: var(--amber); }
+  .box p, .box li { font-size: 1rem; line-height: 1.6; color: #cbd5e1; }
+  .box ul { padding-left: 1.2rem; }
+
+  .analogy-banner {
+    background: rgba(251, 191, 36, 0.1);
+    border-left: 4px solid var(--amber);
+    padding: 1rem 1.3rem;
+    border-radius: 0 10px 10px 0;
+    margin-bottom: 1.3rem;
+    font-size: 1.05rem;
+    line-height: 1.6;
+  }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+  th, td { border: 1px solid var(--border); padding: 0.85rem 1rem; text-align: left; }
+  th { background: #12151e; color: var(--cyan); }
+
+  /* 投影片底部知識溯源標註 */
+  .source-footer {
+    margin-top: 1.8rem;
+    padding-top: 0.8rem;
+    border-top: 1px dashed var(--border);
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .source-footer a { color: var(--cyan); text-decoration: none; }
+  .source-footer a:hover { text-decoration: underline; }
+
+  /* 底部控制列 */
+  .controls {
+    background: #12151e;
+    border-top: 1px solid var(--border);
+    padding: 0.9rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .btn {
+    background: #1e293b;
+    color: #fff;
+    border: 1px solid var(--border);
+    padding: 0.55rem 1.2rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+  }
+  .btn:hover:not(:disabled) { background: var(--cyan); color: #0f1117; font-weight: bold; }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .page-indicator { font-weight: bold; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="progress-container"><div class="progress-bar" id="progressBar"></div></div>
+
+<div class="stage">
+
+  <!-- Slide 1: 封面 -->
+  <div class="slide active">
+    <span class="tag">零程式基礎也能懂 • 遊戲 AI 決策入門</span>
+    <h1>敵人是如何思考與找掩護的？<br><span style="color: var(--cyan);">揭開現代遊戲 AI 的大腦設計</span></h1>
+    <p class="lead">玩射擊或潛行遊戲時，為什麼有些敵人只會傻傻衝過來，有些卻懂得繞背、躲柱子、甚至殘血逃跑？這份簡報將帶你用 5 分鐘看懂背後的四大核心技術。</p>
+    <div class="grid-3">
+      <div class="box">
+        <h3>1. 為什麼傳統 AI 會變笨？</h3>
+        <p>認識早期「有限狀態機」的連線地獄痛點。</p>
+      </div>
+      <div class="box">
+        <h3>2. 現代 AI 怎麼做決定？</h3>
+        <p>拆解「行為樹」與「記憶黑板」的分工邏輯。</p>
+      </div>
+      <div class="box">
+        <h3>3. 如何像真人一樣躲藏？</h3>
+        <p>了解「空間雷達 EQS」與「分數權衡」奧秘。</p>
+      </div>
+    </div>
+    <div class="source-footer">
+      <span>知識庫來源：<a href="./wiki/index.html" target="_blank">LLM Wiki 首頁（wiki/index.html）</a></span>
+      <span>操作提示：使用鍵盤 ← → 方向鍵或下方按鈕切換投影片</span>
+    </div>
+  </div>
+
+  <!-- Slide 2: 痛點引入 FSM -->
+  <div class="slide">
+    <span class="tag">第 1 課：一切的起點與痛點</span>
+    <h2>早期 AI 的困境：有限狀態機（FSM）</h2>
+    <div class="analogy-banner">
+      <strong>💡 生活化比喻：只能看單一紙條的機器人</strong><br>
+      早期 AI 就像一個一次只能執行一張指令紙條的警衛：現在是「巡邏」，看到人就換成「追擊」。規則少的時候很好用，但一旦動作變多，紙條之間的切換箭頭就會打結成一團義大利麵！
+    </div>
+    <div class="grid-2">
+      <div class="box">
+        <h3>什麼是有限狀態機（FSM）？</h3>
+        <ul>
+          <li>同一瞬間只能處於<strong>一種</strong>狀態（巡邏、警戒、追擊、攻擊）。</li>
+          <li>必須手動寫死「什麼條件下，從 A 狀態跳到 B 狀態」。</li>
+        </ul>
+      </div>
+      <div class="box" style="border-color: var(--rose);">
+        <h3 style="color: var(--rose);">為什麼在複雜遊戲會崩潰？</h3>
+        <ul>
+          <li><strong>連線爆炸</strong>：如果有 $N$ 種動作，最壞要維護接近 $N^2$ 條轉換規則。</li>
+          <li><strong>難以共用</strong>：想讓狙擊手跟盾兵共用「找掩體」邏輯，必須整張圖重畫。</li>
+        </ul>
+      </div>
+    </div>
+    <div class="source-footer">
+      <span>知識庫來源：<a href="./wiki/fsm-limits.html" target="_blank">wiki/fsm-limits.html</a>（源自 raw/01_fsm_limits.md）</span>
+      <span>Slide 2 / 8</span>
+    </div>
+  </div>
+
+  <!-- Slide 3: 行為樹核心概念 -->
+  <div class="slide">
+    <span class="tag">第 2 課：用樹狀圖取代混亂連線</span>
+    <h2>解救開發者的救星：行為樹（Behavior Tree）</h2>
+    <div class="analogy-banner">
+      <strong>💡 生活化比喻：公司主管派發任務</strong><br>
+      行為樹把雜亂的網狀連線變成「從上往下、從左往右」的樹狀決策圖，核心只靠兩種邏輯積木就能組合出千變萬化的行為：
+    </div>
+    <div class="grid-2">
+      <div class="box" style="border-color: var(--cyan);">
+        <h3 style="color: var(--cyan);">1. 選擇器 Selector（符號 <code>?</code>）</h3>
+        <p><strong>口訣：「二選一，有一個成功就好（OR）」</strong></p>
+        <p style="margin-top:0.5rem;">從左到右依序嘗試，只要其中一項成功就立刻回報成功。常用於<strong>優先級選擇</strong>（例如：先試著放大招 → 不行就普攻）。</p>
+      </div>
+      <div class="box" style="border-color: var(--emerald);">
+        <h3 style="color: var(--emerald);">2. 序列器 Sequence（符號 <code>→</code>）</h3>
+        <p><strong>口訣：「照順序，全部成功才算數（AND）」</strong></p>
+        <p style="margin-top:0.5rem;">必須每個步驟依序成功才算完成，中途任何一步失敗就整組放棄。常用於<strong>連續動作</strong>（走到門前 → 開門 → 進屋）。</p>
+      </div>
+    </div>
+    <div class="source-footer">
+      <span>知識庫來源：<a href="./wiki/behavior-tree.html" target="_blank">wiki/behavior-tree.html</a>（源自 raw/02_bt_basics.md）</span>
+      <span>Slide 3 / 8</span>
+    </div>
+  </div>
+
+  <!-- Slide 4: 行為樹實戰樹狀圖解 -->
+  <div class="slide">
+    <span class="tag">第 2 課延伸：視覺化決策流程</span>
+    <h2>實戰圖解：守衛 AI 如何決定下一步？</h2>
+    <p class="lead">遊戲每秒會從最頂端的「根節點」往下發送訊號，每個節點只會回報：<strong>成功（Success）、失敗（Failure）或執行中（Running）</strong>。</p>
+    <div class="box" style="text-align: center; padding: 1.5rem;">
+      <svg width="100%" height="210" viewBox="0 0 760 210">
+        <!-- 連線 -->
+        <line x1="380" y1="35" x2="200" y2="95" stroke="#475569" stroke-width="2"/>
+        <line x1="380" y1="35" x2="560" y2="95" stroke="#475569" stroke-width="2"/>
+        <line x1="200" y1="125" x2="110" y2="175" stroke="#475569" stroke-width="2"/>
+        <line x1="200" y1="125" x2="290" y2="175" stroke="#475569" stroke-width="2"/>
+        <!-- 節點 -->
+        <rect x="290" y="10" width="180" height="36" rx="8" fill="#0284c7"/>
+        <text x="380" y="33" fill="#fff" font-size="14" font-weight="bold" text-anchor="middle">Selector (?) 優先級選擇</text>
+
+        <rect x="110" y="90" width="180" height="36" rx="8" fill="#059669"/>
+        <text x="200" y="113" fill="#fff" font-size="14" font-weight="bold" text-anchor="middle">Sequence (→) 戰鬥連招</text>
+
+        <rect x="470" y="90" width="180" height="36" rx="8" fill="#334155"/>
+        <text x="560" y="113" fill="#fff" font-size="14" text-anchor="middle">Action: 沿路線巡邏</text>
+
+        <rect x="30" y="165" width="160" height="36" rx="8" fill="#1e293b" stroke="#fbbf24"/>
+        <text x="110" y="188" fill="#fbbf24" font-size="13" text-anchor="middle">1. 看到玩家了嗎？</text>
+
+        <rect x="210" y="165" width="160" height="36" rx="8" fill="#1e293b" stroke="#38bdf8"/>
+        <text x="290" y="188" fill="#38bdf8" font-size="13" text-anchor="middle">2. 舉槍射擊玩家</text>
+      </svg>
+    </div>
+    <div class="source-footer">
+      <span>知識庫來源：<a href="./wiki/behavior-tree.html" target="_blank">wiki/behavior-tree.html</a></span>
+      <span>Slide 4 / 8</span>
+    </div>
+  </div>
+
+  <!-- Slide 5: 黑板與裝飾器 -->
+  <div class="slide">
+    <span class="tag">第 3 課：記憶庫與守門員</span>
+    <h2>黑板系統（Blackboard）與裝飾器（Decorator）</h2>
+    <div class="analogy-banner">
+      <strong>💡 生活化比喻：作戰室白板與門口警衛</strong><br>
+      行為樹只負責「思考流程」，它需要一塊白板來記住戰場情報，還需要警衛在門口把關條件。
+    </div>
+    <div class="grid-2">
+      <div class="box">
+        <h3>📋 黑板（Blackboard）：共享記憶庫</h3>
+        <ul>
+          <li>集中存放關鍵變數：<code>TargetPlayer</code>（目標）、<code>LastKnownLocation</code>（最後目擊座標）、<code>CurrentHealth</code>（血量）。</li>
+          <li><strong>解耦優勢</strong>：眼睛（感知系統）只管把座標寫上黑板，手腳（行為樹）直接讀取黑板行動，彼此不打架。</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>🛡️ 裝飾器（Decorator）：條件守門員</h3>
+        <ul>
+          <li>附掛在節點上方，決定「這條分支有沒有資格執行」。</li>
+          <li><strong>條件攔截</strong>：檢查黑板確認 <code>HasLineOfSight == true</code> 才放行攻擊。</li>
+          <li><strong>流程控制</strong>：提供 <code>Cooldown</code>（技能冷卻）或 <code>Inverter</code>（結果反轉）。</li>
+        </ul>
+      </div>
+    </div>
+    <div class="source-footer">
+      <span>知識庫來源：<a href="./wiki/blackboard-decorator.html" target="_blank">wiki/blackboard-decorator.html</a>（源自 raw/03_blackboard.md）</span>
+      <span>Slide 5 / 8</span>
+    </div>
+  </div>
+
+  <!-- Slide 6: EQS 空間推理 -->
+  <div class="slide">
+    <span class="tag">第 4 課：AI 如何像真人一樣找掩體？</span>
+    <h2>環境查詢系統（EQS）與空間推理</h2>
+    <div class="analogy-banner">
+      <strong>💡 生活化比喻：玩躲貓貓時的快速掃描</strong><br>
+      你不會只靠「我要找掩體」這句話就躲好，而是會掃描周圍的柱子與箱子，在心裡替每個位置打分數，挑出最安全又最近的地方躲進去。
+    </div>
+    <div class="grid-2">
+      <div class="box">
+        <h3>步驟 1：生成器（Generator）撒點</h3>
+        <p>以 AI 或玩家為中心，在 3D 地形周圍撒出幾十個候選位置圓點：</p>
+        <ul style="margin-top:0.5rem;">
+          <li><strong>網格（Grid）</strong>：在周圍鋪出方陣點位。</li>
+          <li><strong>圓環（Donut）</strong>：在距離敵人 5～15 公尺的環形區撒點，尋找最佳射擊距離。</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>步驟 2：測試器（Test）過濾與打分</h3>
+        <p>針對每個圓點問三個問題（0.0～1.0 分）：</p>
+        <ul style="margin-top:0.5rem;">
+          <li><strong>視線檢測（Trace）</strong>：會被玩家看到嗎？（看到直接淘汰）</li>
+          <li><strong>距離評分（Distance）</strong>：離自己越近分數越高。</li>
+          <li><strong>可達性（Pathfinding）</strong>：走得到嗎？（懸崖對面淘汰）</li>
+        </ul>
+      </div>
+    </div>
+    <div class="source-footer">
+      <span>知識庫來源：<a href="./wiki/eqs-spatial.html" target="_blank">wiki/eqs-spatial.html</a>（源自 raw/04_eqs_spatial.md）</span>
+      <span>Slide 6 / 8</span>
+    </div>
+  </div>
+
+  <!-- Slide 7: Utility AI 與混合架構 -->
+  <div class="slide">
+    <span class="tag">第 5 課：3A 遊戲大作的終極秘密</span>
+    <h2>效用系統（Utility AI）與三層混合架構</h2>
+    <p class="lead">當 AI 面臨<strong>「自己剩 20% 血、子彈剩 2 發，但敵人也只剩一滴血」</strong>的兩難時，死板的 if-else 規則會顯得非常僵硬。</p>
+    <div class="grid-3">
+      <div class="box" style="border-top: 3px solid var(--rose);">
+        <h3>第 1 層：戰略層<br>Utility AI（算分數）</h3>
+        <p>利用<strong>效用曲線</strong>即時計算「喝藥水 65 分 vs 強攻拼命 90 分」，動態選出當下最划算的宏觀目標。</p>
+      </div>
+      <div class="box" style="border-top: 3px solid var(--cyan);">
+        <h3>第 2 層：戰術執行層<br>Behavior Tree + 黑板</h3>
+        <p>接手最高分目標，透過選擇器、序列器與黑板記憶，拆解出具體的移動與射擊動作步驟。</p>
+      </div>
+      <div class="box" style="border-top: 3px solid var(--emerald);">
+        <h3>第 3 層：空間感知層<br>EQS 空間雷達</h3>
+        <p>在執行移動或躲避時，即時在地圖上撒點評分，將最佳 3D 掩體座標寫入黑板。</p>
+      </div>
+    </div>
+    <div class="source-footer">
+      <span>知識庫來源：<a href="./wiki/hybrid-ai.html" target="_blank">wiki/hybrid-ai.html</a>（源自 raw/05_hybrid_ai.md）</span>
+      <span>Slide 7 / 8</span>
+    </div>
+  </div>
+
+  <!-- Slide 8: 總結對照表 -->
+  <div class="slide">
+    <span class="tag">課程總結 • 知識地圖回顧</span>
+    <h2>一張表看懂遊戲 AI 決策演進</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>技術架構</th>
+          <th>核心運作邏輯</th>
+          <th>生活化比喻</th>
+          <th>最擅長解決的問題</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>有限狀態機 (FSM)</strong></td>
+          <td>單一狀態切換</td>
+          <td>只能看單張紙條的機器人</td>
+          <td>機關門、簡易巡邏小怪</td>
+        </tr>
+        <tr>
+          <td><strong>行為樹 + 黑板</strong></td>
+          <td>樹狀 OR / AND 節點 + 記憶庫</td>
+          <td>主管派工 + 作戰室白板</td>
+          <td>有層次、可模組化重用的複雜行為</td>
+        </tr>
+        <tr>
+          <td><strong>環境查詢 (EQS)</strong></td>
+          <td>地形撒點 + 多維度評分</td>
+          <td>玩躲貓貓時掃描最佳柱子</td>
+          <td>3D 戰場動態找掩體、包抄走位</td>
+        </tr>
+        <tr>
+          <td><strong>效用系統 (Utility)</strong></td>
+          <td>連續數值轉 0～100 吸引力分數</td>
+          <td>急性子在超商與餐廳間算划算</td>
+          <td>多重危急條件下的臨場直覺權衡</td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="margin-top: 1.5rem; text-align: center;">
+      <a href="./wiki/index.html" style="display:inline-block; background: var(--cyan); color: #0f1117; padding: 0.7rem 1.5rem; border-radius: 8px; text-decoration: none; font-weight: bold;">深入探索完整 LLM Wiki 知識庫 →</a>
+    </div>
+    <div class="source-footer">
+      <span>知識庫來源：<a href="./wiki/index.html" target="_blank">完整對應 wiki/ 全部 6 個頁面</a></span>
+      <span>Slide 8 / 8（完）</span>
+    </div>
+  </div>
+
+</div>
+
+<div class="controls">
+  <button class="btn" id="prevBtn" onclick="changeSlide(-1)" disabled>← 上一頁</button>
+  <span class="page-indicator" id="pageIndicator">1 / 8</span>
+  <button class="btn" id="nextBtn" onclick="changeSlide(1)">下一頁 →</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const pageIndicator = document.getElementById('pageIndicator');
+  const progressBar = document.getElementById('progressBar');
+  let current = 0;
+
+  function updateUI() {
+    slides.forEach((s, idx) => s.classList.toggle('active', idx === current));
+    prevBtn.disabled = current === 0;
+    nextBtn.disabled = current === slides.length - 1;
+    pageIndicator.textContent = `${current + 1} / ${slides.length}`;
+    progressBar.style.width = `${((current + 1) / slides.length) * 100}%`;
+  }
+
+  function changeSlide(dir) {
+    const next = current + dir;
+    if (next >= 0 && next < slides.length) {
+      current = next;
+      updateUI();
+    }
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') changeSlide(1);
+    if (e.key === 'ArrowLeft') changeSlide(-1);
+  });
+</script>
+
+</body>
+</html>
